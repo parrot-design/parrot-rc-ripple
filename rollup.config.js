@@ -1,6 +1,7 @@
 import typescript from 'rollup-plugin-typescript2'
 import pkg from './package.json'
 import { terser } from 'rollup-plugin-terser'
+import scss from 'rollup-plugin-scss';
 
 export default {
     input: 'src/index.ts', // 入口文件
@@ -16,17 +17,20 @@ export default {
             sourcemap: false,
         },
         {
-            file: 'dist/parrotreacttransitiongroup.umd.js',
+            file: pkg.umd,
             format: 'umd',
-            name: 'ParrotRcTransitionGroup', // umd模块名称，相当于一个命名空间，会自动挂载到window下面
+            name: pkg.umdName, // umd模块名称，相当于一个命名空间，会自动挂载到window下面
             sourcemap: false,
             globals:{
-                'react':'React'
+                'react':'React',
+                '@parrotjs/classnames':'ParrotClassname',
+                '@parrotjs/react-transition-group':'ParrotRcTransitionGroup',
+                '@parrotjs/react-hooks':'ParrotRcHooks'
             },
             plugins: [terser()],
         },
     ],
-    external:['react'], 
+    external:['react','@parrotjs/classnames','@parrotjs/react-transition-group','@parrotjs/react-hooks'], 
     plugins: [
         typescript({
             tsconfigOverride: {
@@ -36,5 +40,9 @@ export default {
             },
             useTsconfigDeclarationDir: true, // 使用tsconfig中的声明文件目录配置
         }),
+        scss({ 
+            output: 'dist/index.css',
+            sass: require('sass')
+        })
     ],
 }

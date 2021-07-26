@@ -1,181 +1,192 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', { value: true });
-
 var React = require('react');
+var classnames = require('@parrotjs/classnames');
+var reactHooks = require('@parrotjs/react-hooks');
+var reactTransitionGroup = require('@parrotjs/react-transition-group');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
 var React__default = /*#__PURE__*/_interopDefaultLegacy(React);
+var classnames__default = /*#__PURE__*/_interopDefaultLegacy(classnames);
 
-/**
- * @return 返回一个对象映射键到child
- * @param children 传入的children
- * @param mapFn 遍历方法
- */
-function getChildMapping(children, mapFn) {
-    let mapper = (child) => mapFn && React.isValidElement(child) ? mapFn(child) : child;
-    let result = Object.create(null);
-    if (children) {
-        /** map会给每个没有key的组件加上默认的key */
-        React.Children.map(children, c => c).forEach((child) => {
-            result[child.key] = mapper(child);
-        });
-    }
-    return result;
-}
-/**
- *
- * @param child 孩子节点
- * @param prop 属性
- * @param props 组件属性
- * @returns 先取group属性再取子组件属性
- */
-function getProp(child, prop, props) {
-    return props[prop] != null ? props[prop] : child.props[prop];
-}
-/**
- *
- * @param props group组件属性
- * @param onExited 将孩子节点传入
- * @returns 返回对应的键值对
- */
-function getInitialChildMapping(props, onExited) {
-    return getChildMapping(props.children, (child) => {
-        return React.cloneElement(child, {
-            onExited: onExited.bind(null, child),
-            visible: true,
-            appear: getProp(child, 'appear', props),
-            enter: getProp(child, 'enter', props),
-            exit: getProp(child, 'exit', props)
-        });
+const Ripple = (props) => {
+    const { prefixCls: customizedPrefixCls, componentName = 'ripple', className, rippleSize, rippleY, rippleX, visible: visibleProp, pulsate = false, onExited, timeout } = props;
+    const prefixCls = `${customizedPrefixCls}-${componentName}`;
+    const [leaving, setLeaving] = React.useState(false);
+    const rippleStyles = {
+        width: rippleSize,
+        height: rippleSize,
+        top: -(rippleSize / 2) + rippleY,
+        left: -(rippleSize / 2) + rippleX,
+    };
+    const rippleClassName = classnames__default['default'](prefixCls, className, `${prefixCls}--visible`);
+    const childClassName = classnames__default['default'](`${prefixCls}-child`, {
+        [`${prefixCls}-child--leaving`]: leaving,
+        [`${prefixCls}-child--pulsate`]: pulsate
     });
-}
-function mergeChildMappings(prev = {}, next = {}) {
-    function getValueForKey(key) {
-        return key in next ? next[key] : prev[key];
+    if (!visibleProp && !leaving) {
+        setLeaving(true);
     }
-    //存储还剩余的键
-    let nextKeysPending = Object.create(null);
-    //存储
-    let pendingKeys = [];
-    for (let prevKey in prev) {
-        if (prevKey in next) {
-            if (pendingKeys.length) {
-                nextKeysPending[prevKey] = pendingKeys;
-                pendingKeys = [];
-            }
+    React__default['default'].useEffect(() => {
+        if (!visibleProp && onExited != null) {
+            // react-transition-group#onExited
+            const timeoutId = setTimeout(onExited, timeout);
+            return () => {
+                clearTimeout(timeoutId);
+            };
         }
-        else {
-            pendingKeys.push(prevKey);
-        }
-    }
-    let i;
-    let childMapping = {};
-    for (let nextKey in next) {
-        if (nextKeysPending[nextKey]) {
-            for (i = 0; i < nextKeysPending[nextKey].length; i++) {
-                let previngNextKey = nextKeysPending[nextKey][i];
-                childMapping[nextKeysPending[nextKey][i]] = getValueForKey(previngNextKey);
-            }
-        }
-        childMapping[nextKey] = getValueForKey(nextKey);
-    }
-    for (i = 0; i < pendingKeys.length; i++) {
-        childMapping[pendingKeys[i]] = getValueForKey(pendingKeys[i]);
-    }
-    return childMapping;
-}
-function getNextChildMapping(nextProps, prevChildMapping, onExited) {
-    let nextChildMapping = getChildMapping(nextProps.children);
-    let children = mergeChildMappings(prevChildMapping, nextChildMapping);
-    Object.keys(children).forEach(key => {
-        let child = children[key];
-        if (!React.isValidElement(child))
-            return;
-        //是之前的
-        const hasPrev = key in prevChildMapping;
-        //是新加的
-        const hasNext = key in nextChildMapping;
-        const prevChild = prevChildMapping[key];
-        const isLeaving = React.isValidElement(prevChild) && !prevChild.props.visible;
-        //新添加的（entering）
-        if (hasNext && (!hasPrev || isLeaving)) {
-            children[key] = React.cloneElement(child, {
-                onExited: onExited.bind(null, child),
-                visible: true,
-                exit: getProp(child, 'exit', nextProps),
-                enter: getProp(child, 'enter', nextProps)
-            });
-        }
-        else if (!hasNext && hasPrev && !isLeaving) {
-            //离开的（exiting）
-            children[key] = React.cloneElement(child, { visible: false });
-        }
-        else if (hasNext && hasPrev && React.isValidElement(prevChild)) {
-            //没有变化的
-            children[key] = React.cloneElement(child, {
-                onExited: onExited.bind(null, child),
-                visible: prevChild.props.visible,
-                exit: getProp(child, 'exit', nextProps),
-                enter: getProp(child, 'enter', nextProps)
-            });
-        }
-    });
-    return children;
-}
-
-const TransitionGroup = (props, ref) => {
-    const { component: Component = 'div', children: childrenProp } = props;
-    //是否挂载完毕
-    const mounted = React.useRef(false);
-    //是否是第一次渲染
-    const firstRender = React.useRef(true);
-    const [childrenMapping, setChildrenMapping] = React.useState({});
-    const childProp = React.useRef(null);
-    const handleExited = React.useCallback((child, node) => {
-        let currentChildMapping = getChildMapping(childProp.current);
-        //如果还在即返回
-        if (child.key in currentChildMapping)
-            return;
-        if (child.props.onExited) {
-            child.props.onExited(node);
-        }
-        if (mounted.current) {
-            setChildrenMapping((prevChildrenMapping) => {
-                let children = Object.assign({}, prevChildrenMapping);
-                delete children[child.key];
-                return children;
-            });
-        }
-    }, [childProp.current, mounted.current]);
-    React.useEffect(() => {
-        //实时更新props:children的值
-        childProp.current = props.children;
-    }, [props]);
-    React.useEffect(() => {
-        mounted.current = true;
-        if (firstRender.current) {
-            setChildrenMapping(getInitialChildMapping(props, handleExited));
-            firstRender.current = false;
-        }
-        else {
-            setChildrenMapping(prevChildrenMapping => {
-                return getNextChildMapping(props, prevChildrenMapping, handleExited);
-            });
-        }
-        return () => {
-            mounted.current = false;
-        };
-    }, [props]);
-    const children = React.useMemo(() => {
-        return Object.values(childrenMapping);
-    }, [childrenMapping]);
-    if (Component === null) {
-        return children;
-    }
-    return (React__default['default'].createElement(Component, { ref: ref }, children));
+        return undefined;
+    }, [onExited, timeout, visibleProp]);
+    return (React__default['default'].createElement("span", { className: classnames__default['default'](rippleClassName), style: rippleStyles },
+        React__default['default'].createElement("span", { className: childClassName })));
 };
-var TransitionGroup$1 = React__default['default'].forwardRef(TransitionGroup);
 
-exports.TransitionGroup = TransitionGroup$1;
+const DURATION = 550;
+const TouchRipple = React__default['default'].forwardRef((props, ref) => {
+    const { component: TouchRippleRoot = 'span', prefixCls: customizedPrefixCls, componentName = 'touchripple', center: centerProp } = props;
+    const prefixCls = `${customizedPrefixCls}-${componentName}`;
+    //ripple的key
+    const nextKey = React__default['default'].useRef(0);
+    const rippleCallback = React.useRef(null);
+    const [ripples, setRipples] = React.useState([]);
+    const container = React.useRef(null);
+    React__default['default'].useEffect(() => {
+        if (rippleCallback.current) {
+            rippleCallback.current();
+            rippleCallback.current = null;
+        }
+    }, [ripples]);
+    const startCommit = React.useCallback((params) => {
+        const { pulsate, rippleX, rippleY, rippleSize, cb } = params;
+        setRipples((oldRipples) => [
+            ...oldRipples,
+            React__default['default'].createElement(Ripple, { key: nextKey.current, timeout: DURATION, pulsate: pulsate, rippleX: rippleX, rippleY: rippleY, rippleSize: rippleSize, prefixCls: customizedPrefixCls })
+        ]);
+        nextKey.current += 1;
+        rippleCallback.current = cb;
+    }, [customizedPrefixCls]);
+    const stop = React.useCallback((event, cb) => {
+        setRipples((oldRipples) => {
+            if (oldRipples.length > 0) {
+                return oldRipples.slice(1);
+            }
+            return oldRipples;
+        });
+        rippleCallback.current = cb;
+    }, []);
+    const start = React.useCallback((event = {}, options = {}, cb) => {
+        const { pulsate = false, center = centerProp || options.pulsate, fakeElement = false, // For test purposes
+         } = options;
+        const element = fakeElement ? null : container.current;
+        const rect = element ? element.getBoundingClientRect() : { width: 0, height: 0, left: 0, top: 0 };
+        //获取ripple组件的大小
+        let rippleX;
+        let rippleY;
+        let rippleSize;
+        if (center || (event.clientX === 0 && event.clientY === 0) || (!event.clientX && !event.touches)) {
+            rippleX = Math.round(rect.width / 2);
+            rippleY = Math.round(rect.height / 2);
+        }
+        else {
+            const { clientX, clientY } = event.touches ? event.touches[0] : event;
+            rippleX = Math.round(clientX - rect.left);
+            rippleY = Math.round(clientY - rect.top);
+        }
+        if (center) {
+            let radius = Math.sqrt(Math.pow(rippleX, 2) + Math.pow(rippleY, 2));
+            rippleSize = radius * 2;
+        }
+        else {
+            //取最长的宽度
+            const sizeX = Math.max(Math.abs((element ? element.clientWidth : 0) - rippleX), rippleX);
+            const sizeY = Math.max(Math.abs((element ? element.clientHeight : 0) - rippleY), rippleY);
+            rippleSize = Math.sqrt(Math.pow(sizeX, 2) + Math.pow(sizeY, 2)) * 2;
+        }
+        startCommit({ pulsate, rippleX, rippleY, rippleSize, cb });
+    }, [startCommit, centerProp]);
+    React__default['default'].useImperativeHandle(ref, () => ({
+        start,
+        stop
+    }), [start, stop]);
+    return (React__default['default'].createElement(TouchRippleRoot, { className: classnames__default['default'](prefixCls), ref: container },
+        React__default['default'].createElement(reactTransitionGroup.TransitionGroup, { component: null }, ripples)));
+});
+var TouchRipple$1 = React__default['default'].memo(TouchRipple);
+
+const RippleBase = React__default['default'].forwardRef((props, ref) => {
+    const { component: BaseRoot = 'div', componentName: customComponentName = 'ripplebase', prefixCls: customizePrefixCls = 'parrot', className, onClick, onFocus, onFocusVisible, onBlur, onKeyDown, onKeyUp, onMouseDown, onMouseLeave, onMouseUp, onTouchStart, onTouchEnd, onTouchMove, disabled = false, disableRipple = false, disableTouchRipple = false, focusRipple = false, tabIndex, type, children, onContextMenu, TouchRippleProps, color } = props;
+    const prefixCls = customizePrefixCls ? `${customizePrefixCls}-${customComponentName}` : `parrot-${customComponentName}`;
+    const divRef = React.useRef(null);
+    const rippleRef = React.useRef(null);
+    const { isFocusVisibleRef, onFocus: handleFocusVisible, onBlur: handleBlurVisible, ref: focusVisibleRef } = reactHooks.useIsFocusVisible();
+    const [focusVisible, setFocusVisible] = React.useState(false);
+    if (disabled && focusVisible) {
+        setFocusVisible(true);
+    }
+    React__default['default'].useEffect(() => {
+        isFocusVisibleRef.current = focusVisible;
+    }, [focusVisible, isFocusVisibleRef]);
+    const handleRef = reactHooks.useForkRef(ref, divRef, focusVisibleRef);
+    const useRippleHandler = (rippleAction, eventCallback, skipRippleAction = disableTouchRipple) => {
+        return React.useCallback((event) => {
+            eventCallback === null || eventCallback === void 0 ? void 0 : eventCallback(event);
+            const ignore = skipRippleAction;
+            if (!ignore && rippleRef.current) {
+                rippleRef.current[rippleAction](event);
+            }
+            return true;
+        }, []);
+    };
+    const handleFocus = React.useCallback((event) => {
+        if (!divRef.current) {
+            divRef.current = event.currentTarget;
+        }
+        handleFocusVisible(event);
+        if (isFocusVisibleRef.current === true) {
+            setFocusVisible(true);
+            onFocusVisible === null || onFocusVisible === void 0 ? void 0 : onFocusVisible(event);
+        }
+        onFocus === null || onFocus === void 0 ? void 0 : onFocus(event);
+    }, [onFocus, onFocusVisible]);
+    const handleBlur = useRippleHandler('stop', (event) => {
+        handleBlurVisible === null || handleBlurVisible === void 0 ? void 0 : handleBlurVisible();
+        if (isFocusVisibleRef.current === false) {
+            setFocusVisible(false);
+        }
+        onBlur === null || onBlur === void 0 ? void 0 : onBlur(event);
+    }, false);
+    //记录是否被激活
+    const keydownRef = React.useRef(false);
+    const handleKeyDown = React.useCallback((event) => {
+        //检查是否已经被激活keydown事件可能会被激活多次
+        keydownRef.current = true;
+        onKeyDown === null || onKeyDown === void 0 ? void 0 : onKeyDown(event);
+    }, [onKeyDown]);
+    const handleKeyUp = React.useCallback((event) => {
+        keydownRef.current = false;
+        onKeyUp === null || onKeyUp === void 0 ? void 0 : onKeyUp(event);
+    }, [onKeyUp]);
+    const handleContextMenu = useRippleHandler('stop', onContextMenu);
+    const handleMouseDown = useRippleHandler('start', onMouseDown);
+    const handleMouseLeave = useRippleHandler('stop', (event) => {
+        onMouseLeave === null || onMouseLeave === void 0 ? void 0 : onMouseLeave(event);
+    });
+    const handleMouseUp = useRippleHandler('stop', onMouseUp);
+    const handleTouchStart = useRippleHandler('start', onTouchStart);
+    const handleTouchEnd = useRippleHandler('stop', onTouchEnd);
+    const handleTouchMove = useRippleHandler('stop', onTouchMove);
+    const [mountedState, setMountedState] = React__default['default'].useState(false);
+    React__default['default'].useEffect(() => {
+        setMountedState(true);
+    }, []);
+    const enableTouchRipple = mountedState && !disableRipple && !disabled;
+    return (React__default['default'].createElement(BaseRoot, { className: classnames__default['default'](prefixCls, className, {
+            ['disabled']: disabled
+        }), ref: handleRef, onClick: onClick, onContextMenu: handleContextMenu, onFocus: handleFocus, onBlur: handleBlur, onKeyDown: handleKeyDown, onKeyUp: handleKeyUp, onMouseDown: handleMouseDown, onMouseLeave: handleMouseLeave, onMouseUp: handleMouseUp, onTouchStart: handleTouchStart, onTouchEnd: handleTouchEnd, onTouchMove: handleTouchMove, tabIndex: disabled ? -1 : tabIndex, type: type },
+        children,
+        enableTouchRipple ? (React__default['default'].createElement(TouchRipple$1, Object.assign({ ref: rippleRef, prefixCls: customizePrefixCls }, TouchRippleProps))) : null));
+});
+var RippleBase$1 = React__default['default'].memo(RippleBase);
+
+module.exports = RippleBase$1;
