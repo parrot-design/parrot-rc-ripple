@@ -23,7 +23,7 @@ export interface IRippleBaseProps {
     focusRipple?: boolean;
     tabIndex?: number;
     type?: string;
-    children?: ReactElement;
+    children?: ReactElement | any;
     onContextMenu?: () => void;
     TouchRippleProps?: any;
     color?: string;
