@@ -1,4 +1,4 @@
-import { ReactElement } from "react";
+import React, { ReactElement } from "react";
 
 export { default } from './RippleBase';
 
@@ -28,7 +28,8 @@ export interface IRippleBaseProps{
     children?:ReactElement|any;
     onContextMenu?:()=>void;
     TouchRippleProps?:any;
-    color?:string
+    color?:string;
+    style?:React.CSSProperties;
 }
 
 export interface ITouchRippleProps{

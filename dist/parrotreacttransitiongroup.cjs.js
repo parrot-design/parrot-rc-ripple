@@ -115,7 +115,7 @@ const TouchRipple = React__default['default'].forwardRef((props, ref) => {
 var TouchRipple$1 = React__default['default'].memo(TouchRipple);
 
 const RippleBase = React__default['default'].forwardRef((props, ref) => {
-    const { component: BaseRoot = 'div', componentName: customComponentName = 'ripplebase', prefixCls: customizePrefixCls = 'parrot', className, onClick, onFocus, onFocusVisible, onBlur, onKeyDown, onKeyUp, onMouseDown, onMouseLeave, onMouseUp, onTouchStart, onTouchEnd, onTouchMove, disabled = false, disableRipple = false, disableTouchRipple = false, focusRipple = false, tabIndex, type, children, onContextMenu, TouchRippleProps, color } = props;
+    const { component: BaseRoot = 'div', componentName: customComponentName = 'ripplebase', prefixCls: customizePrefixCls = 'parrot', className, onClick, onFocus, onFocusVisible, onBlur, onKeyDown, onKeyUp, onMouseDown, onMouseLeave, onMouseUp, onTouchStart, onTouchEnd, onTouchMove, disabled = false, disableRipple = false, disableTouchRipple = false, focusRipple = false, tabIndex, type, children, onContextMenu, TouchRippleProps, style } = props;
     const prefixCls = customizePrefixCls ? `${customizePrefixCls}-${customComponentName}` : `parrot-${customComponentName}`;
     const divRef = React.useRef(null);
     const rippleRef = React.useRef(null);
@@ -183,7 +183,7 @@ const RippleBase = React__default['default'].forwardRef((props, ref) => {
     const enableTouchRipple = mountedState && !disableRipple && !disabled;
     return (React__default['default'].createElement(BaseRoot, { className: classnames__default['default'](prefixCls, className, {
             ['disabled']: disabled
-        }), ref: handleRef, onClick: onClick, onContextMenu: handleContextMenu, onFocus: handleFocus, onBlur: handleBlur, onKeyDown: handleKeyDown, onKeyUp: handleKeyUp, onMouseDown: handleMouseDown, onMouseLeave: handleMouseLeave, onMouseUp: handleMouseUp, onTouchStart: handleTouchStart, onTouchEnd: handleTouchEnd, onTouchMove: handleTouchMove, tabIndex: disabled ? -1 : tabIndex, type: type },
+        }), ref: handleRef, onClick: onClick, onContextMenu: handleContextMenu, onFocus: handleFocus, onBlur: handleBlur, onKeyDown: handleKeyDown, onKeyUp: handleKeyUp, onMouseDown: handleMouseDown, onMouseLeave: handleMouseLeave, onMouseUp: handleMouseUp, onTouchStart: handleTouchStart, onTouchEnd: handleTouchEnd, onTouchMove: handleTouchMove, tabIndex: disabled ? -1 : tabIndex, type: type, style: style },
         children,
         enableTouchRipple ? (React__default['default'].createElement(TouchRipple$1, Object.assign({ ref: rippleRef, prefixCls: customizePrefixCls }, TouchRippleProps))) : null));
 });

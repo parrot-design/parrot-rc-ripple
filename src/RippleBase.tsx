@@ -33,7 +33,7 @@ const RippleBase=React.forwardRef((props:IRippleBaseProps,ref)=>{
         children,
         onContextMenu,
         TouchRippleProps,
-        color
+        style
     }=props;
 
     const prefixCls=customizePrefixCls?`${customizePrefixCls}-${customComponentName}`:`parrot-${customComponentName}`;
@@ -149,6 +149,7 @@ const RippleBase=React.forwardRef((props:IRippleBaseProps,ref)=>{
             onTouchMove={handleTouchMove}
             tabIndex={disabled?-1:tabIndex}
             type={type}
+            style={style}
         >
             {children}
             {enableTouchRipple?(
