@@ -5,7 +5,7 @@
   "main": "dist/parrotreacttransitiongroup.cjs.js",
   "module": "dist/parrotreacttransitiongroup.esm.js",
   "umd": "dist/parrotreacttransitiongroup.umd.js",
-  "umdName": "ParrotRcTransitionGroup",
+  "umdName": "ParrotRcRipple",
   "types": "dist/types",
   "scripts": {
     "dev": "node examples/server.js",
